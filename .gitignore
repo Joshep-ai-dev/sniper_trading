@@ -1,0 +1,13 @@
+.tools/
+target/
+node_modules/
+.next/
+data/
+secrets/
+.env
+*.log
+*.pem
+*.key
+playwright-report/
+test-results/
+*.tsbuildinfo

@@ -1,0 +1,3780 @@
+Build a production-grade, ultra-low-latency Solana new-token automated trading platform with test trading and real Mainnet trading.
+
+Treat this as a senior-level production trading system.
+
+Do not build a demo.
+
+Do not simplify critical architecture.
+
+Do not use PostgreSQL.
+
+Do not use ClickHouse.
+
+Do not use any remote database for trading state.
+
+Use high-speed local persistence with RocksDB.
+
+Use RAM for the fastest trading state.
+
+Use RocksDB as the permanent local source of truth.
+
+The system must prioritize:
+
+1. Fast new-token detection.
+2. Local analysis inside the Rust trading process.
+3. Lowest possible detect-to-submit latency.
+4. Direct high-priority buy and sell execution.
+5. Permanent buy-once protection.
+6. Configurable automatic take profit, default +60%.
+7. Configurable automatic stop loss, default -30%.
+8. STOP AND SELL ALL.
+9. Safe wallet connection.
+10. Secure API configuration.
+11. Complete local trade history.
+12. Local analytics.
+13. Professional desktop trading UX.
+14. Crash-safe local persistence.
+15. Production reliability.
+16. Maintainable senior-level architecture.
+17. Deterministic trading behavior.
+18. Strong concurrency control.
+19. Safe process recovery.
+20. Accurate latency measurement.
+
+==================================================
+1. PRIMARY TRADING FLOW
+==================================================
+
+Solana Mainnet
+↓
+Helius low-latency stream
+↓
+Detect Pump.fun / PumpSwap token
+↓
+Parse locally in Rust
+↓
+Deduplicate locally
+↓
+Local token analysis
+↓
+Local creator analysis
+↓
+Local wallet analysis
+↓
+Risk score
+↓
+Strategy decision
+↓
+RAM permanent buy-once check
+↓
+RAM pending-buy reservation
+↓
+RocksDB durable reservation
+↓
+Build direct transaction
+↓
+Priority fee
+↓
+Jito tip
+↓
+Local signing
+↓
+Helius Sender Max
+↓
+Direct Jito fallback
+↓
+Buy
+↓
+Local position state
+↓
+Real-time local position monitoring
+↓
++60% profit OR -30% loss
+↓
+Priority sell
+↓
+RocksDB final persistence
+↓
+Local analytics update
+↓
+Frontend WebSocket update
+
+Do not place these inside the critical entry decision path:
+
+GMGN requests
+
+DexScreener requests
+
+Jupiter REST requests
+
+AI requests
+
+frontend requests
+
+remote database requests
+
+remote analytics requests
+
+DNS-dependent API discovery
+
+blocking filesystem operations
+
+large historical scans
+
+Use Jupiter only as an optional post-migration routing fallback.
+
+==================================================
+2. TECHNOLOGY STACK
+==================================================
+
+Trading engine:
+
+Rust stable
+
+Tokio
+
+Axum
+
+Serde
+
+Tracing
+
+DashMap
+
+parking_lot
+
+crossbeam
+
+Tokio channels
+
+bytes
+
+smallvec
+
+Solana SDK
+
+persistent HTTP clients
+
+persistent streaming clients
+
+Blockchain feed:
+
+Primary:
+
+Helius Preprocessed Transactions
+
+or
+
+Helius Raw Shreds
+
+Alternative:
+
+Helius LaserStream
+
+Execution:
+
+Primary:
+
+Helius Sender Max
+
+Secondary:
+
+Jito Block Engine
+
+DEX execution:
+
+Direct Pump.fun instructions
+
+Direct PumpSwap instructions
+
+Optional post-migration route:
+
+Jupiter
+
+Frontend:
+
+Next.js
+
+React
+
+TypeScript
+
+TanStack Query
+
+WebSocket live updates
+
+Local persistent database:
+
+RocksDB
+
+In-memory hot state:
+
+Rust HashMap
+
+HashSet
+
+DashMap
+
+atomic values
+
+bounded channels
+
+Monitoring:
+
+Prometheus
+
+Grafana
+
+OpenTelemetry
+
+structured Rust tracing
+
+Local analytics:
+
+RocksDB
+
+in-memory rolling aggregates
+
+precomputed time buckets
+
+local historical scans outside the trading hot path
+
+==================================================
+3. TRADING MODES
+==================================================
+
+Support four modes:
+
+REPLAY
+
+PAPER
+
+DEVNET
+
+LIVE
+
+Use the same:
+
+parser
+
+analyzer
+
+scorer
+
+strategy
+
+risk manager
+
+position manager
+
+TP logic
+
+SL logic
+
+history model
+
+analytics model
+
+buy-once protection
+
+recovery model
+
+Only execution differs.
+
+REPLAY:
+
+Historical event playback.
+
+No live transactions.
+
+Used for strategy evaluation.
+
+Load recorded market events from local storage.
+
+Support configurable playback speed.
+
+Support:
+
+1x
+
+2x
+
+5x
+
+10x
+
+maximum speed
+
+Allow deterministic replay.
+
+Store replay results separately from LIVE results.
+
+PAPER:
+
+Real Solana Mainnet market data.
+
+Real new-token detection.
+
+Real local analysis.
+
+Real strategy decisions.
+
+Simulated buys.
+
+Simulated sells.
+
+Virtual SOL balance.
+
+No real transaction submission.
+
+DEVNET:
+
+Solana Devnet.
+
+Test SOL.
+
+Use for:
+
+transaction construction
+
+signing
+
+retry logic
+
+wallet logic
+
+blockchain integration
+
+failure recovery
+
+LIVE:
+
+Solana Mainnet.
+
+Real SOL.
+
+Real transactions.
+
+Real fees.
+
+Real Jito tips.
+
+Real profit and loss.
+
+Never automatically switch into LIVE.
+
+LIVE requires explicit user confirmation.
+
+==================================================
+4. API CONFIGURATION INTERFACE
+==================================================
+
+Create:
+
+Settings → API & Infrastructure
+
+The user enters infrastructure credentials through the interface.
+
+Provide separate service sections.
+
+HELIUS
+
+Fields:
+
+Helius API Key
+
+Helius RPC URL
+
+Helius WebSocket URL
+
+Helius LaserStream endpoint
+
+Helius Preprocessed Transactions endpoint
+
+Helius Sender endpoint
+
+Preferred Helius region
+
+Buttons:
+
+Test Connection
+
+Save
+
+Clear
+
+Status:
+
+NOT CONFIGURED
+
+CONNECTING
+
+CONNECTED
+
+DEGRADED
+
+FAILED
+
+When testing:
+
+Show connection latency.
+
+Show current Solana slot.
+
+Show network.
+
+Show endpoint region.
+
+Show last successful connection time.
+
+Show stream availability.
+
+Show sender availability.
+
+Example:
+
+Helius
+
+Status: CONNECTED
+
+Network: Mainnet
+
+Region: Singapore
+
+Latency: 18 ms
+
+Current Slot: 412,883,201
+
+On failure:
+
+Status: FAILED
+
+Show a short reason:
+
+Invalid API key
+
+Authentication failed
+
+Timeout
+
+Wrong network
+
+Endpoint unavailable
+
+Rate limited
+
+Never expose full API keys after saving.
+
+Display masked values.
+
+Example:
+
+hls_••••••••••84KF
+
+Provide Show / Hide before saving only if allowed by security policy.
+
+Never return saved secrets to the browser after persistence.
+
+==================================================
+5. JITO CONFIGURATION
+==================================================
+
+Fields:
+
+Jito Block Engine URL
+
+Preferred Jito region
+
+Default Jito tip
+
+Maximum Jito tip
+
+Dynamic tip enabled
+
+Tip percentile
+
+Request timeout
+
+Buttons:
+
+Test Connection
+
+Save
+
+Status:
+
+NOT CONFIGURED
+
+CONNECTING
+
+CONNECTED
+
+DEGRADED
+
+FAILED
+
+Display:
+
+Region
+
+Latency
+
+Tip endpoint status
+
+Current recommended tip
+
+Last successful request
+
+Last error
+
+Example:
+
+Jito
+
+CONNECTED
+
+Tokyo
+
+12 ms
+
+Recommended tip:
+
+0.00018 SOL
+
+Keep persistent connections warm.
+
+Do not create a new network client for every trade.
+
+==================================================
+6. JUPITER CONFIGURATION
+==================================================
+
+Jupiter stays outside early Pump.fun entry.
+
+Fields:
+
+Jupiter API Key when required
+
+Jupiter endpoint
+
+Enable post-migration routing
+
+Maximum route latency
+
+Maximum slippage
+
+Test Connection button
+
+Status:
+
+CONNECTED
+
+FAILED
+
+DISABLED
+
+Jupiter failure must not affect early Pump.fun trading.
+
+==================================================
+7. LOCAL DATABASE CONFIGURATION
+==================================================
+
+Use RocksDB only.
+
+Do not use a remote database.
+
+Do not require a separate database server.
+
+RocksDB settings:
+
+Database path
+
+WAL directory
+
+Maximum open files
+
+Write buffer size
+
+Maximum write buffer count
+
+Block cache size
+
+Compression mode
+
+Background compaction threads
+
+Background flush threads
+
+WAL enabled
+
+Sync critical writes
+
+Checkpoint interval
+
+Backup path
+
+Maximum database size warning threshold
+
+Minimum disk space threshold
+
+Create interface:
+
+Settings → Local Database
+
+Display:
+
+Database status
+
+Database path
+
+Database size
+
+Free disk space
+
+Read latency
+
+Write latency
+
+WAL status
+
+Compaction status
+
+Pending compaction bytes
+
+Open column families
+
+Last successful write
+
+Last checkpoint
+
+Last backup
+
+Buttons:
+
+Test Database
+
+Create Checkpoint
+
+Verify Database
+
+Backup Database
+
+Compact Database
+
+RocksDB states:
+
+NOT_INITIALIZED
+
+OPENING
+
+READY
+
+DEGRADED
+
+READ_ONLY
+
+FAILED
+
+CORRUPTED
+
+Do not allow LIVE mode unless RocksDB status is READY.
+
+==================================================
+8. ROCKSDB ARCHITECTURE
+==================================================
+
+Create dedicated column families.
+
+Column families:
+
+system
+
+config
+
+secrets_metadata
+
+purchased_tokens
+
+purchase_reservations
+
+detected_tokens
+
+creator_intelligence
+
+wallet_intelligence
+
+token_scores
+
+orders
+
+fills
+
+positions
+
+closed_positions
+
+trade_history
+
+strategy_versions
+
+market_events
+
+price_events
+
+latency_events
+
+analytics_daily
+
+analytics_hourly
+
+bot_state
+
+recovery_state
+
+audit_history
+
+replay_data
+
+Use strongly typed keys.
+
+Avoid JSON for latency-sensitive records where binary serialization gives lower overhead.
+
+Use compact binary serialization for hot records.
+
+Use schema version numbers.
+
+Support migration of stored record formats.
+
+Do not scan entire column families inside the trading hot path.
+
+Maintain hot indexes in RAM.
+
+==================================================
+9. SECRET STORAGE
+==================================================
+
+Never store secrets directly in browser localStorage.
+
+Never store wallet private keys in browser state longer than required.
+
+Never store trading-wallet private keys inside RocksDB.
+
+Never include wallet private keys in RocksDB backups.
+
+Never include seed phrases in logs.
+
+Encrypt infrastructure secrets at rest.
+
+Support environment-secret mode for production deployment.
+
+Support external secret-provider abstraction.
+
+Frontend sends credentials over HTTPS only.
+
+Backend validates credentials.
+
+Backend encrypts secrets before persistence.
+
+Logs automatically redact:
+
+API keys
+
+passwords
+
+wallet private keys
+
+seed phrases
+
+authorization headers
+
+session tokens
+
+==================================================
+10. WALLET CONNECTION UX
+==================================================
+
+Create a dedicated Wallet panel.
+
+Support two wallet models.
+
+A. Browser wallet
+
+Use for:
+
+user authentication
+
+balance viewing
+
+optional manual actions
+
+B. Dedicated trading hot wallet
+
+Use for automated trading.
+
+Support common Solana browser wallets through the Solana wallet-adapter ecosystem.
+
+Interface button:
+
+CONNECT WALLET
+
+Connection states:
+
+DISCONNECTED
+
+CONNECTING
+
+CONNECTED
+
+FAILED
+
+WRONG NETWORK
+
+SESSION EXPIRED
+
+DISCONNECTED:
+
+Show:
+
+Connect Wallet
+
+CONNECTING:
+
+Show spinner.
+
+Show:
+
+Connecting to wallet...
+
+Disable repeated clicks.
+
+CONNECTED:
+
+Show:
+
+wallet address
+
+short wallet address
+
+SOL balance
+
+network
+
+last balance update
+
+connection status
+
+Example:
+
+CONNECTED
+
+8Fm2...L9Qp
+
+Balance: 2.481 SOL
+
+Network: Mainnet
+
+Actions:
+
+Copy Address
+
+Refresh Balance
+
+Disconnect
+
+FAILED:
+
+Show failure reason.
+
+Example:
+
+Wallet connection failed.
+
+Reason:
+
+User rejected request.
+
+Actions:
+
+Try Again
+
+Choose Another Wallet
+
+==================================================
+11. AUTOMATED TRADING WALLET
+==================================================
+
+Browser wallet connection must never automatically become the automated trading signer.
+
+Create a separate Trading Wallet section.
+
+States:
+
+NOT CONFIGURED
+
+INITIALIZING
+
+READY
+
+FAILED
+
+LOCKED
+
+Show:
+
+Public address
+
+SOL balance
+
+Network
+
+Signing status
+
+Last signature time
+
+Never show the stored private key.
+
+Production signing happens inside the Rust trading service.
+
+Never send the private key to Next.js.
+
+Never store the private key in RocksDB.
+
+Never include the private key in logs.
+
+Support:
+
+encrypted local keyfile
+
+OS secret store
+
+hardware-backed key storage
+
+external signing abstraction
+
+==================================================
+12. WALLET PREFLIGHT
+==================================================
+
+Before LIVE starts, verify:
+
+Trading wallet loaded
+
+Correct network
+
+SOL balance above configured minimum
+
+Helius connected
+
+Helius feed receiving updates
+
+Helius Sender connected
+
+Jito connected
+
+RocksDB READY
+
+RocksDB writable
+
+WAL healthy
+
+Enough local disk space
+
+Strategy loaded
+
+Risk limits configured
+
+Purchased-token registry loaded
+
+Pending reservations reconciled
+
+Open positions recovered
+
+Recent blockhash available
+
+No unresolved critical transaction state
+
+Process ownership lock acquired
+
+Show checklist:
+
+Helius PASS
+
+Feed PASS
+
+Jito PASS
+
+Sender PASS
+
+Trading Wallet PASS
+
+Balance PASS
+
+RocksDB PASS
+
+Disk PASS
+
+Buy Registry PASS
+
+Recovery PASS
+
+Strategy PASS
+
+Risk Limits PASS
+
+LIVE START stays disabled if any required item fails.
+
+==================================================
+13. PERMANENT BUY-ONCE RULE
+==================================================
+
+After one confirmed successful purchase of a token mint, the bot must never buy the same mint again.
+
+This remains true after:
+
+Selling
+
+Application restart
+
+Server restart
+
+Machine restart
+
+Cache rebuild
+
+Deployment
+
+Database reopen
+
+Bot stop/start
+
+Strategy change
+
+RocksDB is the permanent source of truth.
+
+Use column family:
+
+purchased_tokens
+
+Key:
+
+mint_address
+
+Stored record:
+
+mint_address
+
+creator_address
+
+first_detected_at
+
+first_buy_submitted_at
+
+first_buy_confirmed_at
+
+buy_signature
+
+entry_price
+
+entry_market_cap
+
+strategy_version
+
+exit_signature
+
+exit_price
+
+final_pnl_percent
+
+final_pnl_sol
+
+created_at
+
+updated_at
+
+Load purchased mint addresses into RAM during startup.
+
+Use:
+
+HashSet
+
+or
+
+DashMap
+
+for fast lookup.
+
+Use an in-process pending reservation map.
+
+Use RocksDB durable reservation as final local protection.
+
+Flow:
+
+token detected
+↓
+RAM purchased check
+↓
+RAM pending check
+↓
+atomic pending reservation
+↓
+RocksDB durable reservation
+↓
+strategy decision
+↓
+buy
+↓
+transaction confirmation
+↓
+RocksDB permanent purchased record
+↓
+RAM permanent registry update
+
+A confirmed purchase permanently adds the mint to the registry.
+
+A failed submission with proven no on-chain fill does not permanently blacklist the token.
+
+If purchase status is uncertain:
+
+mark UNKNOWN_PENDING
+
+keep mint blocked
+
+reconcile blockchain state
+
+do not submit another buy until resolved
+
+==================================================
+14. NEW TOKEN DETECTION
+==================================================
+
+Watch:
+
+Pump.fun create events
+
+Pump.fun buys
+
+Pump.fun sells
+
+bonding-curve updates
+
+PumpSwap migration
+
+PumpSwap pools
+
+PumpSwap trades
+
+creator transactions
+
+For every event record:
+
+signature
+
+slot
+
+mint
+
+creator
+
+program
+
+instruction index
+
+receive timestamp
+
+blockchain timestamp
+
+local monotonic timestamp
+
+Deduplicate aggressively.
+
+Use RAM dedup first.
+
+Persist selected event data asynchronously into RocksDB.
+
+Do not block entry decisions on historical event writes.
+
+==================================================
+15. LOCAL TOKEN ANALYSIS
+==================================================
+
+All early analysis runs inside Rust memory.
+
+Maintain local caches for:
+
+creator reputation
+
+creator previous launches
+
+creator success ratio
+
+creator failed launches
+
+creator funding source
+
+known suspicious wallets
+
+wallet relationships
+
+wallet risk score
+
+known token deployers
+
+known malicious addresses
+
+linked wallets
+
+historical creator behavior
+
+buyer clusters
+
+Initial score:
+
+0 to 100.
+
+Example categories:
+
+Creator quality: 30
+
+Token structure: 20
+
+Buyer quality: 20
+
+Momentum: 20
+
+Distribution: 10
+
+Analyze:
+
+creator reputation
+
+creator history
+
+developer initial buy
+
+developer allocation
+
+mint authority
+
+freeze authority
+
+initial supply
+
+initial funding
+
+linked wallets
+
+wallet clustering
+
+first buyers
+
+buyer diversity
+
+buy velocity
+
+sell velocity
+
+buy pressure
+
+large-wallet concentration
+
+developer selling
+
+insider activity
+
+Every decision stores reasons.
+
+Example:
+
+Score: 88
+
+Creator: 27/30
+
+Structure: 19/20
+
+Buyers: 17/20
+
+Momentum: 18/20
+
+Distribution: 7/10
+
+Decision:
+
+BUY
+
+==================================================
+16. ENTRY MODES
+==================================================
+
+FAST:
+
+Use creation transaction plus cached local information.
+
+Target minimum processing time.
+
+No remote lookups.
+
+CONFIRMED:
+
+Observe first 100 to 300 ms.
+
+Evaluate:
+
+number of buyers
+
+buyer diversity
+
+transaction velocity
+
+buy pressure
+
+creator activity
+
+wallet clustering
+
+large initial buys
+
+early selling
+
+Strategy configuration controls which mode runs.
+
+Allow user input for confirmation window.
+
+Example:
+
+100 ms
+
+150 ms
+
+200 ms
+
+300 ms
+
+==================================================
+17. LATENCY
+==================================================
+
+Track:
+
+feed_receive_latency
+
+parse_latency
+
+dedup_latency
+
+analysis_latency
+
+decision_latency
+
+buy_guard_latency
+
+rocksdb_reservation_latency
+
+transaction_build_latency
+
+sign_latency
+
+submission_latency
+
+landing_latency
+
+detect_to_submit
+
+detect_to_fill
+
+Track with high-resolution monotonic clocks.
+
+Targets:
+
+Internal detect-to-submit:
+
+100 to 300 ms maximum operating target.
+
+Prefer sub-100 ms internal processing.
+
+Do not treat 300 ms as an acceptable software delay target.
+
+Display:
+
+average
+
+minimum
+
+maximum
+
+p50
+
+p95
+
+p99
+
+Persist latency events asynchronously.
+
+Do not block transaction execution on metrics writes.
+
+==================================================
+18. BUY EXECUTION
+==================================================
+
+Before BUY:
+
+Check bot state = RUNNING.
+
+Check mode.
+
+Check permanent mint registry.
+
+Check pending mint registry.
+
+Reserve mint atomically.
+
+Persist critical reservation.
+
+Check exposure.
+
+Check wallet balance.
+
+Check strategy score.
+
+Check risk limits.
+
+Check blockhash freshness.
+
+Check sender health.
+
+Then:
+
+Build direct Pump.fun or PumpSwap transaction.
+
+Use cached recent blockhash.
+
+Apply Compute Budget.
+
+Apply dynamic priority fee.
+
+Apply dynamic Jito tip.
+
+Sign locally.
+
+Send immediately.
+
+Prefer Helius Sender Max.
+
+Maintain direct Jito as secondary route.
+
+Record exact timestamps.
+
+Use persistent clients.
+
+Reuse connections.
+
+Avoid per-trade connection construction.
+
+==================================================
+19. POSITION MANAGEMENT
+==================================================
+
+Each position stores:
+
+mint
+
+creator
+
+entry signature
+
+entry timestamp
+
+entry token quantity
+
+SOL spent
+
+entry price
+
+entry market cap
+
+current price
+
+current market cap
+
+gross PnL
+
+net PnL
+
+network fees
+
+priority fees
+
+Jito tips
+
+estimated slippage
+
+pool
+
+migration state
+
+strategy version
+
+token score
+
+position state
+
+Keep active positions in RAM.
+
+Persist critical state transitions into RocksDB.
+
+Position states:
+
+OPENING
+
+OPEN
+
+SELL_TRIGGERED
+
+SELL_SUBMITTED
+
+CLOSING
+
+CLOSED
+
+FAILED
+
+UNKNOWN
+
+==================================================
+20. AUTOMATIC SELL
+==================================================
+
+Take profit:
+
+Default:
+
++60%
+
+Create frontend input field.
+
+Allow user adjustment.
+
+Target:
+
+entry value × 1.60 by default
+
+Stop loss:
+
+Default:
+
+-30%
+
+Create frontend input field.
+
+Allow user adjustment.
+
+Target:
+
+entry value × 0.70 by default
+
+Sell 100% of the position by default.
+
+Use real-time local pool or bonding-curve state.
+
+Do not poll GMGN.
+
+Do not poll DexScreener.
+
+Exit reasons:
+
+TAKE_PROFIT
+
+STOP_LOSS
+
+BOT_STOP
+
+MANUAL_SELL
+
+DEV_SELL
+
+RISK_EVENT
+
+MAX_HOLD_TIME
+
+LIQUIDITY_FAILURE
+
+MIGRATION_FAILURE
+
+==================================================
+21. PRIORITY SELL
+==================================================
+
+TP and SL exits require priority execution.
+
+When an exit triggers:
+
+Lock position atomically.
+
+Prevent duplicate sell.
+
+Build sell transaction.
+
+Use fresh blockhash.
+
+Apply dynamic priority fee.
+
+Apply Jito tip.
+
+Sign.
+
+Submit.
+
+Track signature.
+
+Confirm.
+
+Calculate realized PnL.
+
+Persist final result.
+
+Close position.
+
+For STOP_LOSS and BOT_STOP:
+
+speed has priority over route optimization.
+
+Exit processing receives higher scheduling priority than new entry analysis.
+
+==================================================
+22. BOT STATE
+==================================================
+
+States:
+
+STARTING
+
+RUNNING
+
+PAUSING
+
+PAUSED
+
+STOPPING
+
+STOPPED
+
+ERROR
+
+START:
+
+Acquire process ownership lock.
+
+Open RocksDB.
+
+Verify RocksDB health.
+
+Load permanent mint registry.
+
+Load pending reservations.
+
+Recover open positions.
+
+Recover unresolved orders.
+
+Reconcile uncertain transactions.
+
+Connect feeds.
+
+Warm caches.
+
+Load strategy.
+
+Verify wallet.
+
+Run preflight.
+
+Start trading.
+
+PAUSE:
+
+No new buys.
+
+Continue monitoring open positions.
+
+Continue TP.
+
+Continue SL.
+
+Continue risk exits.
+
+STOP:
+
+Immediately disable new buys.
+
+Cancel pending entries where safe.
+
+Keep feeds running.
+
+Sell every open token.
+
+Use priority execution.
+
+Retry failed sells.
+
+Wait for confirmations.
+
+Switch to STOPPED only after open position count reaches zero.
+
+==================================================
+23. STOP AND SELL ALL UX
+==================================================
+
+Button:
+
+STOP BOT
+
+Confirmation modal:
+
+STOP LIVE TRADING?
+
+New purchases will stop immediately.
+
+Open positions: 4
+
+Current exposure: 0.21 SOL
+
+Estimated liquidation value: 0.19 SOL
+
+All open positions will receive priority sell orders.
+
+Buttons:
+
+Cancel
+
+STOP AND SELL ALL
+
+After confirmation:
+
+STOPPING...
+
+Show each position:
+
+TOKEN A SELL SUBMITTED
+
+TOKEN B SELL CONFIRMED
+
+TOKEN C RETRYING
+
+TOKEN D SELL CONFIRMED
+
+Only show:
+
+STOPPED
+
+after every position closes.
+
+Persist STOPPING state immediately.
+
+If application restarts during STOPPING:
+
+restore STOPPING
+
+continue liquidation
+
+do not enable new buys
+
+==================================================
+24. PAPER TRADING
+==================================================
+
+PAPER mode uses real Mainnet market events with virtual transactions.
+
+Configurable:
+
+Starting virtual SOL
+
+Position size
+
+Simulated network delay
+
+Simulated landing delay
+
+Simulated slippage
+
+Simulated fees
+
+Simulated Jito tip
+
+Simulated failure rate
+
+Use exactly the same:
+
+token detection
+
+parser
+
+local analysis
+
+strategy
+
+risk manager
+
+position manager
+
+TP logic
+
+SL logic
+
+history model
+
+as LIVE.
+
+Store PAPER data separately from LIVE data.
+
+==================================================
+25. TEST AND REAL WALLET SEPARATION
+==================================================
+
+PAPER:
+
+Virtual wallet.
+
+DEVNET:
+
+Separate Devnet wallet.
+
+LIVE:
+
+Dedicated Mainnet trading wallet.
+
+Never mix balances.
+
+Never display PAPER PnL as real PnL.
+
+Never send LIVE transactions using the DEVNET wallet.
+
+Never reuse mode state incorrectly.
+
+==================================================
+26. MAIN DASHBOARD
+==================================================
+
+Desktop-first professional interface.
+
+Top bar:
+
+Trading Mode
+
+Bot State
+
+Wallet
+
+SOL Balance
+
+Open Exposure
+
+Today PnL
+
+Win Rate
+
+Feed Latency
+
+Execution Latency
+
+RocksDB Status
+
+Example:
+
+LIVE | RUNNING
+
+Wallet
+
+8Fm2...L9Qp
+
+Balance
+
+2.481 SOL
+
+Exposure
+
+0.150 SOL
+
+Today
+
++0.287 SOL
+
+Win Rate
+
+61.2%
+
+Feed
+
+14 ms
+
+Execution
+
+126 ms
+
+Local DB
+
+READY
+
+==================================================
+27. LIVE TOKEN FEED
+==================================================
+
+Columns:
+
+Token
+
+Mint
+
+Age
+
+Creator
+
+Market Cap
+
+Score
+
+Creator Score
+
+Buyers
+
+Buy Pressure
+
+Velocity
+
+Risk
+
+Decision
+
+Status
+
+Statuses:
+
+DETECTED
+
+ANALYZING
+
+REJECTED
+
+APPROVED
+
+RESERVED
+
+BUY_SUBMITTED
+
+BOUGHT
+
+SELL_SUBMITTED
+
+SOLD
+
+FAILED
+
+UNKNOWN_PENDING
+
+Provide filters for:
+
+minimum score
+
+decision
+
+status
+
+creator score
+
+age
+
+mode
+
+==================================================
+28. ACTIVE POSITIONS
+==================================================
+
+Columns:
+
+Token
+
+Entry
+
+Current
+
+PnL %
+
+PnL SOL
+
+Position Size
+
+Entry Market Cap
+
+Current Market Cap
+
+TP
+
+SL
+
+Distance to TP
+
+Distance to SL
+
+Hold Time
+
+Status
+
+Provide:
+
+Manual Priority Sell
+
+Position detail
+
+Transaction link
+
+Risk state
+
+Strategy version
+
+==================================================
+29. TRADE HISTORY
+==================================================
+
+Store trade history in RocksDB.
+
+Columns:
+
+Token
+
+Mode
+
+Detection Time
+
+Buy Time
+
+Sell Time
+
+SOL Spent
+
+SOL Received
+
+PnL %
+
+PnL SOL
+
+Fees
+
+Priority Fee
+
+Jito Tip
+
+Score
+
+Exit Reason
+
+Hold Time
+
+Detect-to-Submit
+
+Landing Latency
+
+Trade detail page shows full event timeline.
+
+Support filters:
+
+Date
+
+Mode
+
+Win / Loss
+
+Exit Reason
+
+Token
+
+Score
+
+Strategy version
+
+Use indexed local keys to avoid full scans for common filters.
+
+==================================================
+30. PERFORMANCE SUMMARY
+==================================================
+
+Filters:
+
+1 Day
+
+7 Days
+
+30 Days
+
+All Time
+
+Mode:
+
+PAPER
+
+DEVNET
+
+LIVE
+
+ALL
+
+Default financial view:
+
+LIVE
+
+Statistics:
+
+Total trades
+
+Wins
+
+Losses
+
+Win rate
+
+Gross PnL
+
+Net PnL
+
+Return %
+
+Average winner
+
+Average loser
+
+Profit factor
+
+Best trade
+
+Worst trade
+
+Average hold time
+
+TP count
+
+SL count
+
+Manual exits
+
+Bot-stop exits
+
+Failed buys
+
+Failed sells
+
+Network fees
+
+Priority fees
+
+Jito tips
+
+Slippage cost
+
+Average score
+
+Average detect latency
+
+Average submit latency
+
+p50
+
+p95
+
+p99
+
+Maintain rolling local aggregates.
+
+Write hourly summaries into:
+
+analytics_hourly
+
+Write daily summaries into:
+
+analytics_daily
+
+Do not calculate large historical analytics inside the trading thread.
+
+==================================================
+31. LOCAL DATA ARCHITECTURE
+==================================================
+
+Rust memory:
+
+critical live trading state
+
+purchased mint hot index
+
+pending purchase index
+
+active positions
+
+open orders
+
+creator intelligence
+
+wallet intelligence
+
+pool state
+
+recent blockhash
+
+fee estimates
+
+strategy state
+
+risk state
+
+RocksDB:
+
+permanent purchased-token registry
+
+durable purchase reservations
+
+detected token records
+
+creator intelligence snapshots
+
+wallet intelligence snapshots
+
+orders
+
+fills
+
+positions
+
+closed positions
+
+trade history
+
+market events
+
+price events
+
+latency data
+
+strategy versions
+
+bot configuration
+
+bot state
+
+recovery state
+
+audit history
+
+analytics summaries
+
+replay data
+
+Do not perform broad RocksDB scans in the entry loop.
+
+Do not perform historical analytics in the entry loop.
+
+Do not perform database compaction manually during critical market activity unless necessary.
+
+==================================================
+32. PROCESS OWNERSHIP
+==================================================
+
+Use one active trading-engine process for one trading wallet and one RocksDB trading database.
+
+At startup:
+
+Acquire exclusive process lock.
+
+Lock based on:
+
+database path
+
+wallet identity
+
+instance ID
+
+If another engine owns the same trading state:
+
+refuse startup.
+
+Do not allow two processes to trade the same hot wallet independently.
+
+Store process ownership metadata:
+
+process ID
+
+instance ID
+
+wallet address
+
+startup time
+
+last heartbeat
+
+database path
+
+Use OS-level lock where supported.
+
+Do not rely only on frontend state for ownership.
+
+==================================================
+33. API AND WALLET STATUS COMPONENT
+==================================================
+
+Create one reusable status component.
+
+States:
+
+NOT_CONFIGURED
+
+CONNECTING
+
+CONNECTED
+
+DEGRADED
+
+FAILED
+
+Services:
+
+Helius
+
+LaserStream
+
+Sender
+
+Jito
+
+Jupiter
+
+RocksDB
+
+Trading Wallet
+
+Each service card displays:
+
+Service name
+
+Status indicator
+
+Endpoint where relevant
+
+Region where relevant
+
+Latency
+
+Last successful request
+
+Last error
+
+For RocksDB display:
+
+database path
+
+write latency
+
+read latency
+
+WAL state
+
+disk free
+
+compaction status
+
+==================================================
+34. CONNECTION RETRY LOGIC
+==================================================
+
+Use exponential backoff with jitter.
+
+Do not stop open-position monitoring because a noncritical external service failed.
+
+Classify services.
+
+CRITICAL:
+
+Helius market feed
+
+Trading Wallet
+
+transaction sender
+
+RocksDB
+
+NONCRITICAL:
+
+Jupiter fallback
+
+frontend WebSocket clients
+
+historical chart requests
+
+Loss of a critical feed:
+
+disable new entries.
+
+Loss of trading wallet:
+
+disable new entries.
+
+Loss of transaction sender:
+
+disable new entries.
+
+Loss of RocksDB write access:
+
+disable new entries immediately.
+
+Continue position protection where safe execution remains available.
+
+==================================================
+35. RISK MANAGEMENT
+==================================================
+
+Configurable:
+
+SOL per trade
+
+Maximum open positions
+
+Maximum exposure
+
+Maximum daily loss
+
+Maximum daily trades
+
+Maximum slippage
+
+Maximum priority fee
+
+Maximum Jito tip
+
+Minimum wallet balance
+
+Minimum token score
+
+Minimum creator score
+
+Maximum developer allocation
+
+Maximum wallet concentration
+
+Maximum holding time
+
+Maximum pending entries
+
+Maximum failed submissions
+
+Maximum consecutive losses
+
+Risk rules live in Rust backend code.
+
+Frontend validation is secondary.
+
+Persist activated risk configuration.
+
+==================================================
+36. STRATEGY VERSIONING
+==================================================
+
+Never modify an active strategy silently.
+
+Every change creates a new version.
+
+Store:
+
+version ID
+
+parameters
+
+created time
+
+activated time
+
+deactivated time
+
+performance
+
+notes
+
+Support rollback.
+
+Each trade stores the strategy version used for its decision.
+
+Strategy activation must use atomic state replacement.
+
+==================================================
+37. OPERATIONS PAGE
+==================================================
+
+Display:
+
+CPU
+
+RAM
+
+network latency
+
+current Solana slot
+
+feed lag
+
+feed reconnect count
+
+blockhash age
+
+Helius latency
+
+Sender latency
+
+Jito latency
+
+RocksDB health
+
+RocksDB read latency
+
+RocksDB write latency
+
+RocksDB WAL status
+
+RocksDB compaction backlog
+
+local disk usage
+
+local free disk
+
+queue depths
+
+transaction failure rate
+
+event throughput
+
+active positions
+
+pending buys
+
+pending sells
+
+unresolved transactions
+
+process uptime
+
+==================================================
+38. ROCKSDB HEALTH AND FAILURE HANDLING
+==================================================
+
+Monitor:
+
+open state
+
+read state
+
+write state
+
+WAL state
+
+write stalls
+
+compaction backlog
+
+free disk
+
+database size
+
+checkpoint age
+
+backup age
+
+corruption errors
+
+I/O errors
+
+Critical conditions:
+
+RocksDB not writable
+
+WAL failure
+
+database corruption
+
+disk full
+
+filesystem read-only
+
+critical I/O error
+
+On critical local database failure:
+
+disable new entries immediately.
+
+Set bot state to DEGRADED or ERROR depending on severity.
+
+Continue protecting open positions if:
+
+wallet works
+
+sender works
+
+position state remains available in RAM
+
+Persist emergency recovery data when storage returns.
+
+Never silently continue opening positions without durable persistence.
+
+==================================================
+39. CRASH RECOVERY
+==================================================
+
+On startup:
+
+Acquire ownership lock.
+
+Open RocksDB.
+
+Validate schema version.
+
+Check RocksDB health.
+
+Load purchased tokens.
+
+Load unresolved purchase reservations.
+
+Load unresolved orders.
+
+Load open positions.
+
+Read hot-wallet balance.
+
+Check transaction signatures.
+
+Reconcile balances with positions.
+
+Recover uncertain buys.
+
+Recover uncertain sells.
+
+Restore STOPPING state if previous process stopped during liquidation.
+
+Resume TP monitoring.
+
+Resume SL monitoring.
+
+Resume risk monitoring.
+
+Never repeat a confirmed purchase.
+
+Never release UNKNOWN_PENDING without blockchain reconciliation.
+
+Do not accept new entries until critical recovery finishes.
+
+==================================================
+40. LOCAL CHECKPOINT AND BACKUP
+==================================================
+
+Support RocksDB checkpoints.
+
+Create checkpoints:
+
+at startup after clean recovery
+
+at configurable interval
+
+before application upgrade
+
+before schema migration
+
+after clean shutdown
+
+Store checkpoints outside the active database directory.
+
+Support retention:
+
+last 5 checkpoints
+
+or configurable count
+
+Do not include trading-wallet private keys.
+
+Provide:
+
+Create Checkpoint
+
+Verify Checkpoint
+
+Restore Test
+
+Backup Metadata
+
+Never automatically restore an old checkpoint over current production state without explicit user confirmation.
+
+==================================================
+41. ANALYTICS STORAGE
+==================================================
+
+Use RocksDB for analytics persistence.
+
+Use in-memory counters for live dashboard metrics.
+
+Maintain precomputed time buckets.
+
+Buckets:
+
+1 minute
+
+5 minutes
+
+1 hour
+
+1 day
+
+Store:
+
+trade count
+
+win count
+
+loss count
+
+gross PnL
+
+net PnL
+
+fees
+
+priority fees
+
+Jito tips
+
+average score
+
+average hold time
+
+TP count
+
+SL count
+
+failed buys
+
+failed sells
+
+detect latency sum
+
+submit latency sum
+
+landing latency sum
+
+p50 approximation
+
+p95 approximation
+
+p99 approximation
+
+Do not compute historical analytics inside trading execution tasks.
+
+Run analytics aggregation through background workers.
+
+==================================================
+42. BACKPRESSURE
+==================================================
+
+Use bounded channels.
+
+Do not use unlimited queues.
+
+Classify queues:
+
+CRITICAL
+
+IMPORTANT
+
+BEST_EFFORT
+
+CRITICAL:
+
+buy execution
+
+sell execution
+
+position protection
+
+transaction confirmation
+
+purchase reservation
+
+Never silently drop critical events.
+
+IMPORTANT:
+
+market events
+
+creator updates
+
+wallet updates
+
+history events
+
+BEST_EFFORT:
+
+frontend refresh
+
+charts
+
+verbose diagnostics
+
+metrics samples
+
+When best-effort queues fill:
+
+coalesce
+
+sample
+
+drop stale updates
+
+When critical queues reach unsafe limits:
+
+disable new entries
+
+protect open positions
+
+raise operational alert
+
+==================================================
+43. THREADING AND TASK MODEL
+==================================================
+
+Separate tasks for:
+
+market feed
+
+event parsing
+
+token detection
+
+creator intelligence
+
+wallet intelligence
+
+scoring
+
+strategy
+
+buy execution
+
+sell execution
+
+transaction confirmation
+
+position monitoring
+
+blockhash refresh
+
+fee refresh
+
+Jito tip refresh
+
+RocksDB writer
+
+history persistence
+
+analytics aggregation
+
+frontend WebSocket updates
+
+metrics
+
+recovery
+
+Use dedicated blocking workers for blocking RocksDB operations where required.
+
+Do not block Tokio runtime worker threads with long database operations.
+
+Keep critical message passing bounded.
+
+==================================================
+44. MEMORY MANAGEMENT
+==================================================
+
+Avoid unbounded memory growth.
+
+Set limits for:
+
+recent signatures
+
+recent events
+
+creator cache
+
+wallet cache
+
+price history
+
+pool history
+
+frontend event buffers
+
+expired reservations
+
+Use TTL eviction where appropriate.
+
+Keep permanent purchased-token registry loaded efficiently.
+
+Use compact key types.
+
+Avoid unnecessary cloning.
+
+Avoid repeated string allocation in hot paths.
+
+Prefer parsed binary keys for Solana public keys.
+
+==================================================
+45. BLOCKHASH MANAGEMENT
+==================================================
+
+Maintain a dedicated recent-blockhash service.
+
+Refresh continuously.
+
+Store:
+
+blockhash
+
+slot
+
+fetch timestamp
+
+age
+
+last refresh latency
+
+Transaction builders read blockhash from local memory.
+
+Do not fetch a new blockhash synchronously inside every buy.
+
+For priority sell:
+
+use cached blockhash if fresh.
+
+Refresh immediately if stale.
+
+==================================================
+46. PRIORITY FEE MANAGEMENT
+==================================================
+
+Maintain local priority-fee state.
+
+Update outside the hot path.
+
+Store:
+
+current fee
+
+recommended fee
+
+minimum fee
+
+maximum configured fee
+
+last update
+
+confidence
+
+Use bounded fee configuration.
+
+Never allow dynamic fees above configured maximum.
+
+==================================================
+47. JITO TIP MANAGEMENT
+==================================================
+
+Maintain current Jito tip data outside the hot path.
+
+Store locally in memory.
+
+Configuration:
+
+Static tip
+
+Dynamic tip
+
+Minimum tip
+
+Maximum tip
+
+Percentile
+
+Refresh interval
+
+Timeout
+
+Use the latest valid local tip during transaction construction.
+
+Do not block a buy waiting for a fresh tip request.
+
+==================================================
+48. FRONTEND DATA FLOW
+==================================================
+
+Frontend never directly accesses RocksDB.
+
+Frontend talks to Rust backend.
+
+Flow:
+
+Rust trading state
+↓
+Backend API
+↓
+WebSocket
+↓
+Next.js UI
+
+Use REST for:
+
+settings
+
+historical queries
+
+configuration
+
+manual actions
+
+Use WebSocket for:
+
+live token feed
+
+positions
+
+PnL
+
+bot state
+
+service status
+
+latency
+
+operation events
+
+Frontend failure must not affect trading.
+
+==================================================
+49. LIVE MODE SAFETY
+==================================================
+
+LIVE must require:
+
+explicit mode selection
+
+successful preflight
+
+wallet readiness
+
+Mainnet confirmation
+
+risk configuration
+
+RocksDB readiness
+
+user confirmation
+
+Display confirmation:
+
+ENABLE LIVE MAINNET TRADING?
+
+Real SOL will be used.
+
+Real blockchain transactions will be submitted.
+
+Buttons:
+
+Cancel
+
+ENABLE LIVE
+
+Never automatically switch from:
+
+REPLAY
+
+PAPER
+
+DEVNET
+
+into LIVE.
+
+==================================================
+50. TESTING
+==================================================
+
+Provide:
+
+Unit tests
+
+Integration tests
+
+Concurrency tests
+
+Property tests
+
+Parser fuzz tests
+
+Feed reconnect tests
+
+RocksDB recovery tests
+
+RocksDB corruption handling tests
+
+WAL recovery tests
+
+Disk-full tests
+
+Database read-only tests
+
+Process-lock tests
+
+Process-kill recovery tests
+
+Wallet connection tests
+
+API authentication tests
+
+Invalid API key tests
+
+Connection timeout tests
+
+Duplicate-buy tests
+
+Concurrent duplicate-buy tests
+
+Buy retry tests
+
+Sell retry tests
+
+STOP AND SELL ALL tests
+
+Crash recovery tests
+
+PAPER tests
+
+DEVNET tests
+
+LIVE execution guard tests
+
+Queue saturation tests
+
+Backpressure tests
+
+Blockhash expiry tests
+
+Sender failure tests
+
+Jito failure tests
+
+Critical duplicate test:
+
+Buy token A.
+
+Sell token A.
+
+Restart process.
+
+Reopen RocksDB.
+
+Detect token A again.
+
+Expected:
+
+ALREADY_PURCHASED
+
+No new BUY.
+
+Critical concurrency test:
+
+Send 100 concurrent token A detections.
+
+Expected:
+
+one reservation
+
+one buy submission maximum
+
+remaining attempts rejected
+
+Critical unknown-buy test:
+
+Create transaction.
+
+Submit.
+
+Lose process before confirmation.
+
+Restart.
+
+Expected:
+
+UNKNOWN_PENDING
+
+No repeat buy
+
+Reconcile blockchain
+
+Resolve purchase state
+
+Critical mode test:
+
+Mode = PAPER.
+
+Call Mainnet LIVE executor.
+
+Expected:
+
+Execution rejected.
+
+Critical STOP test:
+
+Open several positions.
+
+Trigger STOP.
+
+Expected:
+
+No new entries.
+
+Every position receives sell request.
+
+State stays STOPPING until positions close.
+
+State becomes STOPPED only with zero positions.
+
+Critical local database failure test:
+
+Disable RocksDB writes.
+
+Expected:
+
+No new BUY.
+
+Existing positions remain protected.
+
+Operational state shows local persistence failure.
+
+==================================================
+51. PROJECT STRUCTURE
+==================================================
+
+Use a Rust workspace.
+
+Suggested crates:
+
+core
+
+feed
+
+solana
+
+pumpfun
+
+pumpswap
+
+parser
+
+creator_intelligence
+
+wallet_intelligence
+
+scorer
+
+strategy
+
+risk
+
+buy_guard
+
+transaction_builder
+
+signer
+
+helius
+
+jito
+
+jupiter
+
+executor
+
+position_manager
+
+exit_engine
+
+local_store
+
+recovery
+
+analytics
+
+metrics
+
+config
+
+api
+
+Frontend:
+
+apps/web
+
+Pages:
+
+Dashboard
+
+Live Feed
+
+Positions
+
+History
+
+Analytics
+
+Strategy
+
+Wallet
+
+API & Infrastructure
+
+Local Database
+
+Operations
+
+Settings
+
+==================================================
+52. DOMAIN SEPARATION
+==================================================
+
+Keep domain logic separate from infrastructure code.
+
+Define interfaces for:
+
+MarketFeed
+
+TokenParser
+
+TokenAnalyzer
+
+Strategy
+
+RiskManager
+
+BuyGuard
+
+TradeExecutor
+
+Signer
+
+PositionStore
+
+TradeStore
+
+AnalyticsStore
+
+Clock
+
+MetricsSink
+
+FrontendPublisher
+
+Do not place RocksDB-specific code inside strategy logic.
+
+Do not place Helius-specific code inside risk logic.
+
+Do not place frontend logic inside executor logic.
+
+==================================================
+53. DEVELOPMENT ORDER
+==================================================
+
+Implement in this order:
+
+1. Domain architecture
+2. Rust workspace
+3. Configuration system
+4. RocksDB local store
+5. Column family schema
+6. Schema versioning
+7. Recovery model
+8. Process ownership lock
+9. Secret manager
+10. Wallet connection UX
+11. Trading-wallet signer
+12. Helius connection
+13. Feed parser
+14. New-token detector
+15. Deduplication
+16. Creator cache
+17. Wallet cache
+18. Token scorer
+19. Permanent buy-once guard
+20. PAPER execution
+21. Direct Pump.fun execution
+22. Direct PumpSwap execution
+23. Jito integration
+24. Helius Sender integration
+25. Position manager
+26. Configurable TP
+27. Configurable SL
+28. STOP AND SELL ALL
+29. DEVNET
+30. LIVE execution guard
+31. Backend API
+32. WebSocket server
+33. Frontend
+34. Trade history
+35. Local analytics
+36. Operations dashboard
+37. Backup and checkpoint system
+38. Recovery tests
+39. Concurrency tests
+40. Performance profiling
+41. Deployment
+42. Production hardening
+
+==================================================
+54. PERFORMANCE PROFILING
+==================================================
+
+Profile before optimizing.
+
+Measure:
+
+allocation count
+
+CPU usage
+
+lock contention
+
+channel wait time
+
+RocksDB write latency
+
+RocksDB read latency
+
+transaction build time
+
+signing time
+
+serialization time
+
+network submission time
+
+Use:
+
+tracing spans
+
+flamegraphs
+
+Tokio metrics
+
+Prometheus histograms
+
+Benchmark:
+
+parser
+
+scorer
+
+buy guard
+
+reservation write
+
+transaction builder
+
+signer
+
+position update
+
+Do not optimize frontend code at the expense of trading-engine work.
+
+==================================================
+55. DEPLOYMENT
+==================================================
+
+Deploy the Rust trading engine on a low-latency server.
+
+Use local NVMe SSD.
+
+Do not place RocksDB on:
+
+NFS
+
+SMB
+
+network block storage with unpredictable latency
+
+shared cloud filesystem
+
+remote database service
+
+Prefer server region close to:
+
+Helius endpoint
+
+Jito endpoint
+
+Solana infrastructure
+
+Keep:
+
+time synchronization enabled
+
+system clock healthy
+
+disk monitoring enabled
+
+process supervisor enabled
+
+automatic restart configured
+
+Crash restart must trigger full recovery before new trading.
+
+==================================================
+56. GRACEFUL SHUTDOWN
+==================================================
+
+On normal shutdown:
+
+disable new buys
+
+keep exits active
+
+flush critical RocksDB writes
+
+persist current bot state
+
+persist open positions
+
+persist pending orders
+
+persist unresolved transactions
+
+create final checkpoint if configured
+
+release process ownership lock
+
+Close RocksDB cleanly.
+
+If LIVE positions remain:
+
+warn user.
+
+Do not silently abandon active positions.
+
+==================================================
+57. AUDIT HISTORY
+==================================================
+
+Store operational audit events locally.
+
+Examples:
+
+bot started
+
+bot paused
+
+bot stopped
+
+LIVE enabled
+
+LIVE disabled
+
+strategy changed
+
+risk settings changed
+
+TP changed
+
+SL changed
+
+wallet initialized
+
+API credentials updated
+
+manual sell
+
+STOP AND SELL ALL
+
+database recovery
+
+unknown transaction reconciliation
+
+Store:
+
+timestamp
+
+event type
+
+mode
+
+user action
+
+old value where relevant
+
+new value where relevant
+
+result
+
+Do not store secret values.
+
+==================================================
+58. DATA RETENTION
+==================================================
+
+Make retention configurable.
+
+Suggested defaults:
+
+raw market events:
+
+7 days
+
+price events:
+
+30 days
+
+latency events:
+
+30 days
+
+trade history:
+
+permanent
+
+purchased-token registry:
+
+permanent
+
+audit history:
+
+permanent
+
+strategy versions:
+
+permanent
+
+closed positions:
+
+permanent
+
+Provide safe cleanup jobs.
+
+Never delete purchased-token registry entries.
+
+==================================================
+59. UI REQUIREMENTS
+==================================================
+
+Design for desktop trading.
+
+Prioritize:
+
+clear bot state
+
+clear trading mode
+
+clear wallet state
+
+clear risk state
+
+clear connection state
+
+fast position visibility
+
+fast emergency sell access
+
+Avoid unnecessary animation.
+
+Do not hide failures.
+
+Use visible status labels.
+
+Every failure should show a short reason.
+
+Every critical action should show result.
+
+==================================================
+60. FINAL QUALITY REQUIREMENTS
+==================================================
+
+Treat this as a senior production trading system.
+
+Do not return a demo architecture.
+
+Produce complete source code.
+
+Keep trading logic deterministic.
+
+Keep the critical trading path small.
+
+Keep critical state in RAM.
+
+Use RocksDB for permanent local persistence.
+
+Do not use PostgreSQL.
+
+Do not use ClickHouse.
+
+Do not require a remote database server.
+
+Keep external API requests outside the entry decision path.
+
+Keep secrets outside frontend storage.
+
+Keep wallet private keys outside RocksDB.
+
+Keep wallet private keys outside logs.
+
+Never buy the same successfully purchased mint twice.
+
+Never submit a second BUY while the previous state is uncertain.
+
+Never mark STOPPED while an open position remains.
+
+Never submit Mainnet transactions outside LIVE mode.
+
+Never open new positions after critical persistence failure.
+
+Never silently drop critical trading events.
+
+Never let analytics block trading.
+
+Never let frontend performance affect trading.
+
+Never allow two independent trading engines to use the same trading wallet and trading database simultaneously.
+
+Measure every latency stage.
+
+Use bounded queues.
+
+Use atomic position-state transitions.
+
+Use durable local purchase reservations.
+
+Use crash-safe recovery.
+
+Use explicit LIVE confirmation.
+
+Use configurable TP and SL input fields.
+
+Default TP:
+
++60%
+
+Default SL:
+
+-30%
+
+Priority order:
+
+1. Prevent duplicate buys.
+2. Protect and exit open positions.
+3. Preserve wallet security.
+4. Preserve durable local trading state.
+5. Recover correctly after process failure.
+6. Minimize new-token detect-to-submit latency.
+7. Keep remote calls outside trading decisions.
+8. Keep execution deterministic.
+9. Maintain accurate local history.
+10. Maintain clear operational visibility.
+11. Maintain professional desktop UX.
+12. Preserve identical strategy behavior across REPLAY, PAPER, DEVNET, and LIVE except execution.

@@ -1,0 +1,25 @@
+[Unit]
+Description=Sniper Solana trading engine
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=sniper
+Group=sniper
+WorkingDirectory=/opt/sniper
+EnvironmentFile=/etc/sniper/engine.env
+ExecStart=/opt/sniper/target/release/sniper-api
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=false
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sniper/data /opt/sniper/secrets /tmp/sniper-trading-wallet-locks
+UMask=0077
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

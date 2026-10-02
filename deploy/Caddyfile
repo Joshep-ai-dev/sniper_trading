@@ -1,0 +1,9 @@
+https://localhost:3443 {
+    tls internal
+    handle /stream {
+        reverse_proxy 127.0.0.1:8787
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}

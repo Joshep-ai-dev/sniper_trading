@@ -1,0 +1,1 @@
+The official Pump.fun and PumpSwap IDLs were downloaded on 2026-10-02 from https://github.com/pump-fun/pump-public-docs/tree/main/idl. They are vendored to keep protocol discovery out of trading. Review program upgrades and validate transaction fixtures before replacing these files.

@@ -1,0 +1,29 @@
+[package]
+name = "sniper-api"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sniper-domain.workspace = true
+sniper-store.workspace = true
+sniper-connectors.workspace = true
+sniper-engine.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+parking_lot.workspace = true
+axum = { version = "0.8", features = ["ws"] }
+tower-http = { version = "0.6", features = ["limit"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+toml = "0.8"
+futures-util = "0.3"
+subtle = "2"
+url = "2"
+rand = "0.8"
+zeroize = "1"
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+tempfile = "3"

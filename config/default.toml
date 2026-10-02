@@ -1,0 +1,39 @@
+mode = "PAPER"
+bind = "127.0.0.1:8787"
+browser_origin = "https://localhost:3443"
+secret_path = "secrets"
+
+[store]
+path = "data/rocksdb"
+wal_dir = "data/wal"
+checkpoint_path = "data/checkpoints"
+backup_path = "data/backups"
+min_free_bytes = 1073741824
+
+[strategy]
+take_profit_bps = 6000
+stop_loss_bps = 3000
+min_score = 75
+entry_mode = "FAST"
+confirmation_ms = 150
+
+[risk]
+sol_per_trade = 50000000
+max_positions = 4
+max_exposure = 200000000
+max_daily_loss = 100000000
+max_daily_trades = 50
+slippage_bps = 500
+max_priority_fee = 500000
+max_jito_tip = 2000000
+min_balance = 100000000
+
+[paper]
+starting_balance = 5000000000
+network_delay_ms = 15
+landing_delay_ms = 200
+slippage_bps = 100
+fee = 5000
+tip = 1000000
+failure_bps = 0
+seed = 42

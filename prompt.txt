@@ -1,0 +1,1153 @@
+Build a production-grade, low-latency Solana new-token automated trading platform with both test trading and real Mainnet trading.
+The system must prioritize:
+1. Fast new-token detection.
+2. Local analysis inside the trading process.
+3. Detect-to-submit target of lowest latency.
+4. Direct high-priority buy and sell execution.
+5. Permanent buy-once protection.
+6. Automatic +60% take profit. Need input field for updating.
+7. Automatic -30% stop loss. Need input field for updating.
+8. STOP AND SELL ALL.
+9. Safe wallet connection.
+10. Secure API configuration.
+11. Complete trade history and analytics.
+12. Professional desktop trading UX.
+13. Production reliability and maintainable architecture.
+==================================================
+1. PRIMARY TRADING FLOW
+Solana Mainnet
+↓
+Helius low-latency stream
+↓
+Detect Pump.fun / PumpSwap token
+↓
+Parse locally in Rust
+↓
+Local token and creator analysis
+↓
+Risk score
+↓
+Strategy decision
+↓
+Permanent buy-once check
+↓
+Build direct transaction
+↓
+Priority fee + Jito tip
+↓
+Helius Sender Max / Jito
+↓
+Buy
+↓
+Real-time position monitoring
+↓
++60% profit OR -30% loss
+↓
+Priority sell
+↓
+Record final result
+Do not place GMGN, DexScreener, Jupiter REST calls, AI requests, PostgreSQL analytics queries, or frontend requests inside the critical entry decision path.
+Use Jupiter only as an optional post-migration routing fallback.
+==================================================
+2. TECHNOLOGY STACK
+==================================================
+Trading engine:
+Rust stable
+Tokio
+Axum
+Serde
+Tracing
+DashMap
+crossbeam or Tokio channels
+Solana SDK
+persistent HTTP clients
+Blockchain feed:
+Primary:
+Helius Preprocessed Transactions or Helius Raw Shreds
+Alternative:
+Helius LaserStream
+Execution:
+Primary:
+Helius Sender Max
+Secondary:
+Jito Block Engine
+DEX execution:
+Direct Pump.fun instructions
+Direct PumpSwap instructions
+Optional post-migration route:
+Jupiter
+Frontend:
+Next.js
+React
+TypeScript
+TanStack Query
+WebSocket live updates
+Persistent transactional database:
+PostgreSQL
+High-volume analytical database:
+ClickHouse
+High-performance cache:
+DragonflyDB
+Monitoring:
+Prometheus
+Grafana
+OpenTelemetry
+structured Rust tracing
+==================================================
+3. TRADING MODES
+==================================================
+Support four modes:
+REPLAY
+PAPER
+DEVNET
+LIVE
+Use the same parser, analyzer, scorer, strategy, risk manager, position manager, TP logic, SL logic, and reporting system across every mode.
+Only execution differs.
+REPLAY:
+Historical event playback.
+No live transactions.
+Used for strategy evaluation.
+PAPER:
+Real Solana Mainnet market data.
+Real new-token detection.
+Real analysis.
+Simulated buy and sell.
+Virtual SOL balance.
+No real transaction submission.
+DEVNET:
+Solana Devnet.
+Test SOL.
+Used for transaction construction, signing, retry logic, wallet logic, and blockchain integration.
+LIVE:
+Solana Mainnet.
+Real SOL.
+Real transactions.
+Real fees.
+Real Jito tips.
+Real profit and loss.
+Never automatically switch into LIVE.
+LIVE requires explicit user confirmation.
+==================================================
+4. API CONFIGURATION INTERFACE
+==================================================
+Create a Settings → API & Infrastructure page.
+The user must enter infrastructure credentials through the interface.
+Provide separate sections.
+HELIUS
+Fields:
+Helius API Key
+Helius RPC URL
+Helius WebSocket URL
+Helius LaserStream endpoint
+Helius Preprocessed Transactions endpoint
+Helius Sender endpoint
+Preferred Helius region
+Buttons:
+Test Connection
+Save
+Clear
+Status:
+NOT CONFIGURED
+CONNECTING
+CONNECTED
+FAILED
+When testing:
+Show connection latency.
+Show current Solana slot.
+Show network.
+Show endpoint region.
+Show last successful connection time.
+Example:
+Helius
+Status: CONNECTED
+Network: Mainnet
+Region: Singapore
+Latency: 18 ms
+Current Slot: 412,883,201
+On failure:
+Status: FAILED
+Show a short reason:
+Invalid API key
+Authentication failed
+Timeout
+Wrong network
+Endpoint unavailable
+Rate limited
+Never expose full API keys after saving.
+Display:
+hls_••••••••••84KF
+Provide Show / Hide only before saving if security policy permits.
+Never return saved secrets to the browser after persistence.
+==================================================
+5. JITO CONFIGURATION
+==================================================
+Fields:
+Jito Block Engine URL
+Preferred Jito region
+Default Jito tip
+Maximum Jito tip
+Dynamic tip enabled
+Tip percentile
+Request timeout
+Buttons:
+Test Connection
+Save
+Status:
+NOT CONFIGURED
+CONNECTING
+CONNECTED
+FAILED
+Display:
+Region
+Latency
+Tip endpoint status
+Current recommended tip
+Last successful request
+Example:
+Jito
+CONNECTED
+Tokyo
+12 ms
+Recommended tip: 0.00018 SOL
+==================================================
+6. JUPITER CONFIGURATION
+==================================================
+Jupiter stays outside early Pump.fun entry.
+Fields:
+Jupiter API Key, when required
+Jupiter endpoint
+Enable post-migration routing
+Maximum route latency
+Maximum slippage
+Test Connection button.
+Status:
+CONNECTED
+FAILED
+DISABLED
+==================================================
+7. DATABASE CONFIGURATION
+==================================================
+PostgreSQL fields:
+Host
+Port
+Database
+Username
+Password
+SSL mode
+Maximum connections
+ClickHouse fields:
+Host
+Port
+Database
+Username
+Password
+TLS enabled
+Dragonfly fields:
+Host
+Port
+Username
+Password
+TLS enabled
+Each service gets:
+Test Connection
+Save Configuration
+Connection status
+Latency
+Last successful connection
+Do not display saved passwords.
+==================================================
+8. SECRET STORAGE
+==================================================
+Never store secrets directly in browser localStorage.
+Never store private keys in frontend state longer than needed.
+Encrypt secrets at rest.
+Support environment-secret mode for production deployment.
+Support external secret providers through an abstraction layer.
+Frontend sends credentials over HTTPS only.
+Backend validates and encrypts credentials.
+Logs must automatically redact:
+API keys
+database passwords
+wallet private keys
+seed phrases
+authorization headers
+==================================================
+9. WALLET CONNECTION UX
+==================================================
+Create a dedicated Wallet panel.
+Support two wallet models:
+A. Browser wallet for user authentication and optional manual actions.
+B. Dedicated trading hot wallet for automated trading.
+Support common Solana browser wallets through the Solana wallet adapter ecosystem.
+Interface button:
+CONNECT WALLET
+Connection state must be obvious.
+States:
+DISCONNECTED
+CONNECTING
+CONNECTED
+FAILED
+WRONG NETWORK
+SESSION EXPIRED
+DISCONNECTED state:
+Connect Wallet button.
+CONNECTING state:
+Spinner
+Connecting to wallet...
+Disable repeated clicks.
+CONNECTED state:
+Show:
+wallet address
+short wallet address
+SOL balance
+network
+last balance update
+connection status
+Example:
+CONNECTED
+8Fm2...L9Qp
+Balance: 2.481 SOL
+Network: Mainnet
+Actions:
+Copy Address
+Refresh Balance
+Disconnect
+FAILED state:
+Show error message.
+Example:
+Wallet connection failed.
+Reason:
+User rejected request.
+Actions:
+Try Again
+Choose Another Wallet
+==================================================
+10. AUTOMATED TRADING WALLET
+==================================================
+Browser wallet connection must not automatically become the trading signer.
+Create a separate Trading Wallet section.
+Status:
+NOT CONFIGURED
+INITIALIZING
+READY
+FAILED
+LOCKED
+Show:
+Public address
+SOL balance
+Network
+Signing status
+Never show the stored private key.
+Support secure trading-wallet initialization.
+Production signing should happen inside the backend trading service.
+Never send the private key to Next.js.
+Never store the private key in PostgreSQL.
+Never store the private key in ClickHouse.
+Never store the private key in Dragonfly.
+Never include the private key in logs.
+==================================================
+11. WALLET PREFLIGHT
+==================================================
+Before LIVE starts, verify:
+Trading wallet loaded
+Correct network
+SOL balance above configured minimum
+Helius connected
+Helius feed receiving updates
+Sender connected
+Jito connected
+PostgreSQL healthy
+Dragonfly healthy
+Strategy loaded
+Risk limits configured
+Purchased-token registry loaded
+Recent blockhash available
+No unresolved critical database state
+Show checklist:
+Helius          PASS
+Feed            PASS
+Jito            PASS
+Sender          PASS
+Trading Wallet  PASS
+Balance         PASS
+Database        PASS
+Strategy        PASS
+Risk Limits     PASS
+LIVE START button stays disabled if any required item fails.
+==================================================
+12. PERMANENT BUY-ONCE RULE
+==================================================
+After one confirmed successful purchase of a token mint, the bot must never buy the same mint again.
+This remains true after:
+Selling
+Application restart
+Server restart
+Cache clear
+Deployment
+Database reconnect
+Bot stop/start
+Strategy change
+PostgreSQL is the permanent source of truth.
+Table:
+purchased_tokens
+Fields:
+mint_address PRIMARY KEY
+creator_address
+first_detected_at
+first_buy_submitted_at
+first_buy_confirmed_at
+buy_signature
+entry_price
+entry_market_cap
+strategy_version
+exit_signature
+exit_price
+final_pnl_percent
+final_pnl_sol
+created_at
+updated_at
+Load purchased mint addresses into memory during startup.
+Use a Rust HashSet or DashMap for the fast lookup.
+Use Dragonfly SET NX for distributed reservation.
+Use PostgreSQL unique constraint as final protection.
+Flow:
+token detected
+↓
+RAM check
+↓
+distributed reservation
+↓
+PostgreSQL protection
+↓
+strategy decision
+↓
+buy
+A confirmed purchase permanently adds the mint to the registry.
+A failed submission with no on-chain fill does not permanently blacklist the token.
+==================================================
+13. NEW TOKEN DETECTION
+==================================================
+Watch:
+Pump.fun create events
+Pump.fun buys
+Pump.fun sells
+bonding-curve updates
+PumpSwap migration
+PumpSwap pools
+PumpSwap trades
+creator transactions
+For every event record:
+signature
+slot
+mint
+creator
+program
+instruction index
+receive timestamp
+blockchain timestamp
+Deduplicate aggressively.
+==================================================
+14. LOCAL TOKEN ANALYSIS
+==================================================
+All early analysis should run inside Rust memory.
+Maintain local caches for:
+creator reputation
+creator previous launches
+creator success ratio
+creator failed launches
+creator funding source
+known suspicious wallets
+wallet relationships
+wallet risk score
+known token deployers
+known malicious addresses
+Initial score from 0 to 100.
+Example categories:
+Creator quality: 30
+Token structure: 20
+Buyer quality: 20
+Momentum: 20
+Distribution: 10
+Analyze:
+creator reputation
+creator history
+developer initial buy
+developer allocation
+mint authority
+freeze authority
+initial supply
+initial funding
+linked wallets
+wallet clustering
+first buyers
+buyer diversity
+buy velocity
+sell velocity
+buy pressure
+large-wallet concentration
+developer selling
+insider activity
+Every decision must include reasons.
+Example:
+Score: 88
+Creator: 27/30
+Structure: 19/20
+Buyers: 17/20
+Momentum: 18/20
+Distribution: 7/10
+Decision:
+BUY
+==================================================
+15. ENTRY MODES
+==================================================
+FAST:
+Use creation transaction plus cached information.
+Target minimum processing time.
+CONFIRMED:
+Observe first 100 to 300 ms.
+Evaluate:
+number of buyers
+buyer diversity
+transaction velocity
+buy pressure
+creator activity
+wallet clustering
+large initial buys
+Strategy configuration controls which mode runs.
+==================================================
+16. LATENCY
+==================================================
+Track:
+feed_receive_latency
+parse_latency
+analysis_latency
+decision_latency
+buy_guard_latency
+transaction_build_latency
+sign_latency
+submission_latency
+landing_latency
+detect_to_submit
+detect_to_fill
+Targets:
+Internal detect-to-submit:
+100 to 300 ms maximum target.
+Prefer sub-100 ms internal processing.
+Display:
+average
+minimum
+maximum
+p50
+p95
+p99
+==================================================
+17. BUY EXECUTION
+==================================================
+Before BUY:
+Check bot state = RUNNING.
+Check mode.
+Check permanent mint blacklist.
+Reserve mint.
+Check exposure.
+Check wallet balance.
+Check strategy score.
+Check risk limits.
+Then:
+Build direct Pump.fun or PumpSwap transaction.
+Use cached recent blockhash.
+Apply Compute Budget.
+Apply dynamic priority fee.
+Apply dynamic Jito tip.
+Sign locally.
+Send immediately.
+Prefer Helius Sender Max.
+Maintain direct Jito as secondary route.
+Record exact timestamps.
+==================================================
+18. POSITION MANAGEMENT
+==================================================
+Each position stores:
+mint
+creator
+entry signature
+entry timestamp
+entry token quantity
+SOL spent
+entry price
+entry market cap
+current price
+current market cap
+gross PnL
+net PnL
+network fees
+priority fees
+Jito tips
+estimated slippage
+pool
+migration state
+strategy version
+token score
+position state
+==================================================
+19. AUTOMATIC SELL
+==================================================
+Take profit:
++60%
+Target:
+entry value × 1.60
+Stop loss:
+-30%
+Target:
+entry value × 0.70
+Sell 100% of the position.
+Use real-time local pool or bonding-curve state.
+Do not poll GMGN.
+Exit reasons:
+TAKE_PROFIT
+STOP_LOSS
+BOT_STOP
+MANUAL_SELL
+DEV_SELL
+RISK_EVENT
+MAX_HOLD_TIME
+LIQUIDITY_FAILURE
+MIGRATION_FAILURE
+==================================================
+20. PRIORITY SELL
+==================================================
+TP and SL exits require priority execution.
+When an exit triggers:
+Lock position.
+Prevent duplicate sell.
+Build sell transaction.
+Use fresh blockhash.
+Apply dynamic priority fee.
+Apply Jito tip.
+Sign.
+Submit.
+Track signature.
+Confirm.
+Calculate realized PnL.
+Close position.
+For STOP_LOSS and BOT_STOP, speed has priority over optimal routing.
+==================================================
+21. BOT STATE
+==================================================
+States:
+STARTING
+RUNNING
+PAUSING
+PAUSED
+STOPPING
+STOPPED
+ERROR
+START:
+Run all preflight checks.
+Connect feeds.
+Warm caches.
+Load permanent mint registry.
+Load strategy.
+Verify wallet.
+Start trading.
+PAUSE:
+No new buys.
+Continue monitoring open positions.
+Continue TP and SL.
+STOP:
+Immediately disable new buys.
+Cancel pending entries.
+Keep feeds running.
+Sell every open token.
+Use priority execution.
+Retry failed sells.
+Wait for confirmations.
+Switch to STOPPED only after open position count reaches zero.
+==================================================
+22. STOP AND SELL ALL UX
+==================================================
+Button:
+STOP BOT
+Confirmation modal:
+STOP LIVE TRADING?
+New purchases will stop immediately.
+Open positions: 4
+Current exposure: 0.21 SOL
+Estimated liquidation value: 0.19 SOL
+All open positions will receive priority sell orders.
+Buttons:
+Cancel
+STOP AND SELL ALL
+After confirmation:
+STOPPING...
+Show each position:
+TOKEN A   SELL SUBMITTED
+TOKEN B   SELL CONFIRMED
+TOKEN C   RETRYING
+TOKEN D   SELL CONFIRMED
+Only show:
+STOPPED
+after every position closes.
+==================================================
+23. PAPER TRADING
+==================================================
+PAPER mode uses real Mainnet market events but virtual transactions.
+Configurable:
+Starting virtual SOL
+Position size
+Simulated network delay
+Simulated landing delay
+Simulated slippage
+Simulated fees
+Simulated Jito tip
+Simulated failure rate
+Use exactly the same token detection and strategy logic as LIVE.
+==================================================
+24. TEST AND REAL WALLET SEPARATION
+==================================================
+PAPER:
+Virtual wallet.
+DEVNET:
+Separate Devnet wallet.
+LIVE:
+Dedicated Mainnet trading wallet.
+Never mix balances.
+Never display PAPER PnL as real PnL.
+==================================================
+25. MAIN DASHBOARD
+==================================================
+Desktop-first professional interface.
+Top bar:
+Trading Mode
+Bot State
+Wallet
+SOL Balance
+Open Exposure
+Today PnL
+Win Rate
+Feed Latency
+Execution Latency
+Example:
+LIVE | RUNNING
+Wallet
+8Fm2...L9Qp
+Balance
+2.481 SOL
+Exposure
+0.150 SOL
+Today
++0.287 SOL
+Win Rate
+61.2%
+Feed
+14 ms
+Execution
+126 ms
+==================================================
+26. LIVE TOKEN FEED
+==================================================
+Columns:
+Token
+Mint
+Age
+Creator
+Market Cap
+Score
+Creator Score
+Buyers
+Buy Pressure
+Velocity
+Risk
+Decision
+Status
+Statuses:
+DETECTED
+ANALYZING
+REJECTED
+APPROVED
+RESERVED
+BUY_SUBMITTED
+BOUGHT
+SELL_SUBMITTED
+SOLD
+FAILED
+==================================================
+27. ACTIVE POSITIONS
+==================================================
+Columns:
+Token
+Entry
+Current
+PnL %
+PnL SOL
+Position Size
+Entry Market Cap
+Current Market Cap
+TP
+SL
+Distance to TP
+Distance to SL
+Hold Time
+Status
+Provide Manual Priority Sell.
+==================================================
+28. TRADE HISTORY
+==================================================
+Columns:
+Token
+Mode
+Detection Time
+Buy Time
+Sell Time
+SOL Spent
+SOL Received
+PnL %
+PnL SOL
+Fees
+Priority Fee
+Jito Tip
+Score
+Exit Reason
+Hold Time
+Detect-to-Submit
+Landing Latency
+Trade detail page should display the full event timeline.
+==================================================
+29. PERFORMANCE SUMMARY
+==================================================
+Filters:
+1 Day
+7 Days
+30 Days
+All Time
+Mode:
+PAPER
+DEVNET
+LIVE
+ALL
+Default financial view:
+LIVE
+Statistics:
+Total trades
+Wins
+Losses
+Win rate
+Gross PnL
+Net PnL
+Return %
+Average winner
+Average loser
+Profit factor
+Best trade
+Worst trade
+Average hold time
+TP count
+SL count
+Manual exits
+Bot-stop exits
+Failed buys
+Failed sells
+Network fees
+Priority fees
+Jito tips
+Slippage cost
+Average score
+Average detect latency
+Average submit latency
+p50
+p95
+p99
+==================================================
+30. DATABASE ARCHITECTURE
+==================================================
+Rust memory:
+Critical live trading state.
+Dragonfly:
+distributed locks
+temporary state
+dashboard cache
+rate counters
+short-lived metadata
+PostgreSQL:
+authoritative trading records
+wallet metadata
+strategy versions
+bot settings
+orders
+fills
+positions
+purchased token registry
+audit history
+ClickHouse:
+market events
+price events
+wallet events
+latency data
+historical scores
+raw features
+system performance
+Do not query ClickHouse in the entry loop.
+==================================================
+31. API AND WALLET STATUS COMPONENT
+==================================================
+Create one reusable status component.
+States:
+NOT_CONFIGURED
+CONNECTING
+CONNECTED
+DEGRADED
+FAILED
+Each service card displays:
+Service name
+Status indicator
+Endpoint
+Region
+Latency
+Last successful request
+Last error
+Services:
+Helius
+LaserStream
+Sender
+Jito
+Jupiter
+PostgreSQL
+Dragonfly
+ClickHouse
+Trading Wallet
+==================================================
+32. CONNECTION RETRY LOGIC
+==================================================
+Use exponential backoff with jitter.
+Do not stop open-position monitoring because one analytics service failed.
+Classify services:
+CRITICAL:
+Helius market feed
+Trading Wallet
+transaction sender
+PostgreSQL purchase registry
+NON-CRITICAL:
+ClickHouse
+dashboard analytics
+historical charts
+Loss of a critical service:
+Disable new entries immediately.
+Continue position protection where execution remains available.
+==================================================
+33. RISK MANAGEMENT
+==================================================
+Configurable:
+SOL per trade
+Maximum open positions
+Maximum exposure
+Maximum daily loss
+Maximum daily trades
+Maximum slippage
+Maximum priority fee
+Maximum Jito tip
+Minimum wallet balance
+Minimum token score
+Minimum creator score
+Maximum developer allocation
+Maximum wallet concentration
+Maximum holding time
+Risk rules live in Rust backend code.
+Frontend validation is secondary.
+==================================================
+34. STRATEGY VERSIONING
+==================================================
+Never modify an active strategy silently.
+Every change creates a new version.
+Store:
+version ID
+parameters
+created time
+activated time
+deactivated time
+performance
+Support rollback.
+==================================================
+35. OPERATIONS PAGE
+==================================================
+Display:
+CPU
+RAM
+network latency
+current Solana slot
+feed lag
+feed reconnect count
+blockhash age
+Helius latency
+Sender latency
+Jito latency
+PostgreSQL health
+Dragonfly health
+ClickHouse health
+queue depths
+transaction failure rate
+event throughput
+==================================================
+36. CRASH RECOVERY
+==================================================
+On startup:
+Load purchased tokens.
+Load unresolved orders.
+Read hot-wallet balances.
+Reconcile balances with database positions.
+Check transaction signatures.
+Recover open positions.
+Resume TP and SL monitoring.
+Never repeat a confirmed purchase.
+==================================================
+37. TESTING
+==================================================
+Provide:
+Unit tests
+Integration tests
+Concurrency tests
+Property tests
+Feed reconnect tests
+Database recovery tests
+Dragonfly loss tests
+Wallet connection tests
+API authentication tests
+Invalid API key tests
+Connection timeout tests
+Duplicate-buy tests
+Buy retry tests
+Sell retry tests
+STOP AND SELL ALL tests
+Crash recovery tests
+PAPER tests
+DEVNET tests
+LIVE execution guard tests
+Critical duplicate test:
+Buy token A.
+Sell token A.
+Restart server.
+Clear Dragonfly.
+Reconnect PostgreSQL.
+Detect token A again.
+Expected:
+ALREADY_PURCHASED
+No new BUY.
+Critical mode test:
+Mode = PAPER.
+Call Mainnet LIVE executor.
+Expected:
+Execution rejected.
+Critical STOP test:
+Open several positions.
+Trigger STOP.
+No new entries occur.
+Every position receives sell request.
+State stays STOPPING until positions close.
+State becomes STOPPED only with zero positions.
+==================================================
+38. PROJECT STRUCTURE
+==================================================
+Use a Rust workspace.
+Modules:
+feed
+solana
+pumpfun
+pumpswap
+parser
+creator_intelligence
+wallet_intelligence
+scorer
+strategy
+risk
+buy_guard
+transaction_builder
+signer
+helius
+jito
+jupiter
+executor
+position_manager
+exit_engine
+postgres
+dragonfly
+clickhouse
+metrics
+config
+api
+Frontend:
+apps/web
+Pages:
+Dashboard
+Live Feed
+Positions
+History
+Analytics
+Strategy
+Wallet
+API & Infrastructure
+Operations
+Settings
+==================================================
+39. DEVELOPMENT ORDER
+==================================================
+Implement in this order:
+Architecture
+Configuration system
+PostgreSQL schema
+Dragonfly integration
+ClickHouse integration
+API credential manager
+Wallet connection UX
+Trading-wallet signer
+Helius connection
+Feed parser
+New-token detector
+Creator cache
+Wallet cache
+Token scorer
+Permanent buy-once guard
+PAPER execution
+Direct Pump.fun execution
+Jito
+Helius Sender
+Position manager
++60% TP
+-30% SL
+STOP AND SELL ALL
+DEVNET
+LIVE execution guard
+Backend API
+WebSocket server
+Frontend
+Analytics
+Operations dashboard
+Tests
+Deployment
+Performance profiling
+==================================================
+40. FINAL QUALITY REQUIREMENTS
+==================================================
+Treat this as a senior production trading system.
+Do not return a demo architecture.
+Produce complete source code.
+Keep trading logic deterministic.
+Keep the critical trading path small.
+Keep external API calls outside the entry decision path.
+Keep secrets outside frontend storage.
+Keep wallet private keys outside databases and logs.
+Never buy the same successfully purchased mint twice.
+Never mark STOPPED while an open position remains.
+Never submit real Mainnet transactions outside LIVE mode.
+Show every wallet and API connection state clearly:
+CONNECTING
+CONNECTED
+FAILED
+Provide clear failure reasons.
+Measure every latency stage.
+Design the interface for fast decision-making, safe operation, and easy maintenance.
+The priority order is:
+1. Prevent duplicate buys.
+2. Protect and exit open positions.
+3. Maintain wallet and secret security.
+4. Minimize new-token detect-to-submit latency.
+5. Maintain reliable persistence.
+6. Provide clear professional UX.
+7. Preserve test and LIVE behavior through one shared strategy engine.
